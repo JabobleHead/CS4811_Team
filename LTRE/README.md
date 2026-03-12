@@ -13,73 +13,49 @@ forward-chaining rule engine. The system is split into two layers:
 
 ## Architectural Choices
 
-### Task 3.1 — Advanced Unification
-
-Unification is split across two functions:
-
-- **`unify(pat, term, env)`** — handles atoms, variables (`?x`), wildcards (`?_`),
-  and delegates lists to `unify_lists`.
-- **`unify_lists(pat_list, term_list, env)`** — iterates element-by-element.
-  When a **segment variable** (`?rest…`) is encountered it greedily consumes the
-  entire remaining tail of the term list into one binding and returns immediately.
-  This gives variable-length argument matching without backtracking.
-
-Wildcards (`?_`) are checked before the ordinary variable branch so they never
-produce a binding, keeping the environment clean.
-
-### Task 3.2 — Declarative Rule Schemas
-
-Rules are stored as `Rule` dataclass instances with two optional fields:
-
-- `triggers` — a list of fact patterns (the antecedents / LHS)
-- `actions`  — a list of S-expression tuples such as `("assert", <pattern>)`
-
-**`add_rule()`** accepts these fields alongside the legacy Python-callback API so
-both styles coexist.
-
-**`join_triggers()`** performs the multi-antecedent join by recursing through the
-trigger list depth-first, threading a single `env` dict so bindings made by
-trigger *i* are visible when unifying trigger *i+1*. This is a miniature
-Rete-style join without explicit stateful memory nodes.
-
-**`run_rules()`** interprets each action: for `("assert", pattern)` it calls
-`subst(pattern, env)` to substitute bindings and then calls `assert_fact()`,
-which calls `CLTMS.add_support()` to wire the LTMS justification clause
-automatically.
-
-### Task 3.3 — Knowledge Base Optimisation (O(1) Retrieval)
-
-**`fetch(pattern)`** extracts `predicate = pattern[0]` and skips any `DbClass`
-whose `form[0]` does not match before attempting unification. Because `dbclasses`
-is a `dict` keyed by `str(form)`, the backing store is already a hash table; the
-predicate check eliminates all facts in unrelated buckets in O(1) per entry
-before the more expensive `unify` call is made.
-
-A full **Rete network** would additionally maintain:
-- *Alpha memories* — one node per predicate, populated at assertion time.
-- *Beta memories* — stateful partial-match records per rule join node.
-- *Token propagation* — incremental updates instead of re-scanning on every query.
-
-The current predicate-filter approach delivers the largest real-world speedup
-(skipping irrelevant predicates entirely) without the added complexity of
-stateful Rete memories.
-
----
-
 ## CLTMS — BCP, DDB, and Well-Founded Support
 
-### BCP (Part 1) — Boolean Constraint Propagation
+### BCP (Part 1) — Boolean Constraint Propagation Queue
 
 Every derived fact is represented as a Horn clause
 `consequent ∨ ¬ant₁ ∨ ¬ant₂ ∨ …` in `CLTMS.clauses`. A queue-based BCP loop
-evaluates each clause after any node value changes. The four clause states are:
+evaluates each clause after any node value changes.
 
-| State | Meaning |
-|-------|---------|
-| SATISFIED | At least one literal already satisfied |
-| VIOLATED | All literals contradicted — triggers DDB |
-| UNIT | Exactly one unknown literal — force it |
-| UNRESOLVED | Multiple unknowns — wait |
+#### Queue Design Choice: `collections.deque` (FIFO)
+
+The BCP queue (`self.queue`) is a `collections.deque` processed in **FIFO order**
+(`appendleft` / `popleft`). This was a deliberate architectural choice for three reasons:
+
+1. **O(1) enqueue and dequeue.** A plain `list.pop(0)` costs O(n) per operation because
+   it shifts every remaining element. `deque.popleft()` is O(1), keeping each propagation
+   step constant-time regardless of queue depth.
+
+2. **Breadth-first unit propagation.** FIFO ordering means all clauses that were affected
+   by the *same* node assignment are processed before the clauses triggered by the forced
+   values those clauses produce. This breadth-first sweep mirrors standard DPLL/CDCL BCP
+   and produces deterministic, reproducible propagation chains.
+
+3. **Stable contradiction detection.** Because all consequences of a given assignment are
+   flushed before the next wave begins, a VIOLATED clause is detected at the earliest
+   possible point — minimising the chance that a later propagation step masks or delays
+   the contradiction.
+
+**Entry points that feed the queue:**
+
+| Trigger | What is enqueued |
+|---------|-----------------|
+| `add_clause(clause)` | The new clause itself |
+| `assume(node, value)` | Every clause that contains that node |
+| `retract(node)` | Every clause that contains that node |
+
+**Propagation loop outcome per clause:**
+
+| State | Meaning | Action |
+|-------|---------|--------|
+| SATISFIED | At least one literal already satisfied | Skip |
+| VIOLATED | All literals contradicted | Trigger DDB |
+| UNIT | Exactly one unknown literal | Force its value; re-enqueue its clauses |
+| UNRESOLVED | Multiple unknowns remain | Leave for a future round |
 
 ### Dependency-Directed Backtracking (Part 2)
 
