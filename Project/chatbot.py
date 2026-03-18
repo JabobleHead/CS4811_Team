@@ -1,5 +1,6 @@
 import requests
 import json
+import utilities as util
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL = "qwen3.5:0.8b"
