@@ -2,6 +2,9 @@ import requests
 import json
 from bs4 import BeautifulSoup
 
+headers = {
+    "User-Agent": "Mozilla/5.0"
+}
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL = "qwen3.5:0.8b"
