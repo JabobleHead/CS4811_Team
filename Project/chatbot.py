@@ -62,8 +62,13 @@ def extract_all_urls(response_text):
     # Fallback: grab all raw https:// URLs
     raw = re.findall(r'https://\S+', response_text)
     
-    # Clean trailing punctuation that may get captured
-    cleaned = [url.rstrip('.,;)]\'"') for url in raw]
+    # Clean trailing punctuation, but only strip ) if parens are unbalanced
+    def clean_url(url):
+        url = url.rstrip('.,;]\'"')
+        while url.endswith(')') and url.count(')') > url.count('('):
+            url = url[:-1]
+        return url
+    cleaned = [clean_url(url) for url in raw]
     
     return cleaned if cleaned else []
 
@@ -97,6 +102,7 @@ def check_credibility(reply):
 
     print("\n--- Credibility Check ---")
     for url in urls:
+        util.check_url(url)
         result = evaluate_url(url)
         print(format_credibility_output(url, result))
     print("-------------------------")
