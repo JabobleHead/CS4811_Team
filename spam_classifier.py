@@ -71,7 +71,7 @@ def classify_message(words, p_w_given_s, p_w_given_h, p_s, p_h):
     return log_p_spam, log_p_ham, label
 
 if __name__ == '__main__':
-    spam_msgs, ham_msgs = load_dataset('C:/Users/rjwtu/OneDrive/Desktop/ChatBot/SMSSpamCollection')
+    spam_msgs, ham_msgs = load_dataset("C:\\Users\\zacks\\Downloads\\sms+spam+collection\\SMSSpamCollection")
     n_spam, n_ham, p_s, p_h = compute_priors(spam_msgs, ham_msgs)
     print(f'Dataset: {n_spam} spam, {n_ham} ham ({n_spam+n_ham} total)')
 

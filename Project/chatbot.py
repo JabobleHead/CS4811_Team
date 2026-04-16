@@ -3,6 +3,7 @@ import json
 import utilities as util
 import re
 
+import re
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL = "qwen3.5:0.8b"
@@ -136,6 +137,7 @@ def chat(history):
 
 def main():
     history = [{"role": "system", "content": SYSTEM_PROMPT}]
+    #print("CS4811 AI Tutor ready. Type 'quit' to exit.")
     print("-" * 60)
     while True:
         user_input = input("You: ").strip()
@@ -146,8 +148,23 @@ def main():
             continue
         history.append({"role": "user", "content": user_input})
         history = trim_history(history)
-        reply = chat(history)
-        check_credibility(reply)
+        claim = chat(history)
+        reply = claim + " "
+        """
+        #finding the source
+        match = re.search(r"http(.*?)\s", reply)
+        if match:
+            #print("http"+match.group(1))
+            util.check_url("http"+match.group(1))
+        else:
+            print("No sources given")
+        """
+        urls = util.extract_all_urls(reply)
+        for url in urls:
+            util.check_url(url)
+
+        check_credibility(claim)
+
         history.append({"role": "assistant", "content": reply})
 
         print("-" * 60)
