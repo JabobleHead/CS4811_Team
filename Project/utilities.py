@@ -18,7 +18,8 @@ def check_url(url):
             return False
 
 for url in ["https://beautiful-soup-4.readthedocs.io/en/latest/", "https://fakeurl.com", "https://en.wikipedia.org/wiki/Appellate_Division_Courthouse_of_New_York_State"]:
-    check_url(url)
+    #check_url(url)
+    pass
 
 def extract_all_urls(response_text):
     # First try labeled format: "URL: https://..."

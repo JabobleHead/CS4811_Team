@@ -56,6 +56,6 @@ def url_scan(url):
     
     return message
 
-print("A malicious website like paypa1-login-secure.com shows: \n" + url_scan("paypa1-login-secure.com"))
-print("\n A trustworthy website like https://www.cnn.com/ shows: \n" + url_scan("https://www.cnn.com/"))
-print(url_scan("https://en.wikipedia.org/wiki/List_of_municipal_capitals_of_the_Republic_of_Portugal"))
+#print("A malicious website like paypa1-login-secure.com shows: \n" + url_scan("paypa1-login-secure.com"))
+#print("\n A trustworthy website like https://www.cnn.com/ shows: \n" + url_scan("https://www.cnn.com/"))
+#print(url_scan("https://en.wikipedia.org/wiki/List_of_municipal_capitals_of_the_Republic_of_Portugal"))

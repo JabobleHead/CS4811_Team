@@ -105,6 +105,7 @@ def check_credibility(reply):
     print("\n--- Credibility Check ---")
     for url in urls:
         util.check_url(url)
+        print(us.url_scan(url))
         result = evaluate_url(url)
         print(format_credibility_output(url, result))
     print("-------------------------")
@@ -151,19 +152,6 @@ def main():
         history = trim_history(history)
         claim = chat(history)
         reply = claim + " "
-        """
-        #finding the source
-        match = re.search(r"http(.*?)\s", reply)
-        if match:
-            #print("http"+match.group(1))
-            util.check_url("http"+match.group(1))
-        else:
-            print("No sources given")
-        """
-        urls = util.extract_all_urls(reply)
-        for url in urls:
-            util.check_url(url)
-            print(us.url_scan(url))
 
         check_credibility(reply)
         history.append({"role": "assistant", "content": reply})
