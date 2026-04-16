@@ -2,6 +2,7 @@ import requests
 import json
 import utilities as util
 import re
+import url_scanners as us
 
 import re
 
@@ -162,9 +163,9 @@ def main():
         urls = util.extract_all_urls(reply)
         for url in urls:
             util.check_url(url)
+            print(us.url_scan(url))
 
-        check_credibility(claim)
-
+        check_credibility(reply)
         history.append({"role": "assistant", "content": reply})
 
         print("-" * 60)
